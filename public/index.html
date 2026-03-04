@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Procurement Tracking System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Ensure body is hidden by default but can be shown by JavaScript */
+        body {
+            display: none;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Debug panel - remove in production */
+        #debug-console {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9999;
+            max-width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* Hide by default, enable for debugging */
+        }
+    </style>
+    <script>
+        // CRITICAL: This runs BEFORE anything else
+        (function() {
+            console.log('🔍 Index.html: Auth check started');
+            
+            try {
+                // Check if user exists in sessionStorage
+                const userStr = sessionStorage.getItem('user');
+                console.log('SessionStorage user:', userStr ? '✅ PRESENT' : '❌ MISSING');
+                
+                if (!userStr) {
+                    console.log('No user found, redirecting to login page');
+                    window.location.replace('login.html');
+                    return;
+                }
+                
+                // Validate that the stored user is valid JSON
+                try {
+                    const user = JSON.parse(userStr);
+                    console.log('User authenticated:', user.username, 'Role:', user.role);
+                } catch (e) {
+                    console.error('Invalid user data in sessionStorage:', e);
+                    sessionStorage.removeItem('user');
+                    window.location.replace('login.html');
+                    return;
+                }
+                
+                // Show body as soon as possible
+                // We do this immediately, not waiting for DOMContentLoaded
+                if (document.body) {
+                    document.body.style.display = 'block';
+                    document.body.style.visibility = 'visible';
+                    document.body.style.opacity = '1';
+                    console.log('Body display set to block immediately');
+                } else {
+                    // If body doesn't exist yet, wait for it
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.style.display = 'block';
+                        document.body.style.visibility = 'visible';
+                        document.body.style.opacity = '1';
+                        console.log('Body display set to block on DOMContentLoaded');
+                    });
+                }
+            } catch (e) {
+                console.error('Critical error in auth check:', e);
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <!-- Debug panel - remove comment to enable debugging -->
+    <!-- <div id="debug-console"></div> -->
+
+    <div class="app-container">
+        <!-- FIXED HEADER SECTION -->
+        <div class="fixed-header">
+            <header class="main-header">
+                <div class="header-left">
+                    <div class="logo">
+                        <i class="fas fa-truck"></i>
+                        <h1>ProcureTrack</h1>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <!-- Three Dots Menu -->
+                    <div class="menu-container">
+                        <button class="menu-button" onclick="toggleMenu()">
+                            <i class="fas fa-ellipsis-vertical"></i>
+                        </button>
+                        <div class="menu-dropdown" id="menuDropdown">
+                            <!-- User info will be dynamically added here by JavaScript -->
+                            <div id="menuUserInfo"></div>
+                            <div class="menu-divider" id="menuDivider" style="display: none;"></div>
+                            <button onclick="showAllHistory()" class="menu-item">
+                                <i class="fas fa-history"></i> History
+                            </button>
+                            <button onclick="exportToExcel()" class="menu-item">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </button>
+                            <div class="menu-divider"></div>
+                            <button onclick="logout()" class="menu-item logout-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        </div>
+        
+        <!-- FIXED STATS SECTION -->
+        <div class="fixed-stats">
+            <div class="stats-grid">
+                <div class="stat-card" id="statTotal">
+                    <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total PRs</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statCompleted">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Completed</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statAvgTime">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-content">
+                        <span class="stat-label">Avg PR→PO (Days)</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FIXED ACTION BAR -->
+        <div class="fixed-actions">
+            <div class="action-bar">
+                <button onclick="showCreateForm()" class="btn btn-primary btn-large">
+                    <i class="fas fa-plus-circle"></i> Create New PR
+                </button>
+                <div class="search-box">
+                    <i class="fas fa-hashtag"></i>
+                    <input type="text" id="searchTracking" placeholder="Enter Tracking # to track..." onkeyup="if(event.key==='Enter')searchRecord()">
+                    <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                    <button onclick="searchRecord()" class="btn btn-secondary">Track</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SCROLLABLE CONTENT -->
+        <div class="scrollable-content">
+            <!-- Selected Record Info -->
+            <div id="selectedRecord" class="record-info" style="display: none;">
+                <div class="record-header">
+                    <h3><i class="fas fa-info-circle"></i> Tracking: <span id="currentTracking"></span></h3>
+                    <div class="record-actions">
+                        <button onclick="showFileUpload()" class="btn btn-small btn-info">
+                            <i class="fas fa-upload"></i> Upload Files
+                        </button>
+                        <button onclick="viewFiles()" class="btn btn-small btn-secondary">
+                            <i class="fas fa-folder-open"></i> View Files (<span id="fileCount">0</span>)
+                        </button>
+                    </div>
+                </div>
+                <div class="record-details-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value" id="displayPrDate"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Plant:</span>
+                        <span class="detail-value" id="displayPlant"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Supplier Name:</span>
+                        <span class="detail-value" id="displaySupplier"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Item/Work Description:</span>
+                        <span class="detail-value" id="displayItemDescription"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Payment Type:</span>
+                        <span class="detail-value" id="displayPaymentType"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">PO Number:</span>
+                        <span class="detail-value" id="displayPONumber"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Requested By:</span>
+                        <span class="detail-value" id="displayRequestedBy"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Remarks:</span>
+                        <span class="detail-value" id="displayRemarks"></span>
+                    </div>
+                </div>
+                <div class="progress-info">
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar" style="width: 0%">0%</div>
+                    </div>
+                    <div id="tatInfo" class="tat-info"></div>
+                </div>
+            </div>
+            
+            <!-- Stage Progress Grid -->
+            <div class="stages-container">
+                <h2><i class="fas fa-tasks"></i> Procurement Stages</h2>
+                <div class="progress-grid" id="stagesGrid">
+                    <!-- Stages populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Recent Records Table -->
+            <div class="recent-records">
+                <h2><i class="fas fa-history"></i> Records</h2>
+                <div class="table-responsive">
+                    <table id="recentTable">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Tracking #</th>
+                                <th>Date</th>
+                                <th>Plant</th>
+                                <th>Item/Work Description</th>
+                                <th>Payment Type</th>
+                                <th>PO Number</th>
+                                <th>Requested By</th>
+                                <th>Current Stage</th>
+                                <th>PO Advance</th>
+                                <th>Status</th>
+                                <th>Files</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTableBody">
+                            <tr><td colspan="13" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div id="paginationControls" class="pagination-container"></div>
+            </div>
+        </div>
+        
+        <!-- Create PR Form Modal -->
+        <div id="createForm" class="form-popup" style="display: none;">
+            <div class="form-container">
+                <h3><i class="fas fa-file-signature"></i> Create New Purchase Requisition</h3>
+                
+                <div class="form-group">
+                    <label>Tracking Number *</label>
+                    <input type="text" id="trackingNumber" class="form-control" placeholder="e.g., PR-2024-001" required>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="prDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Plant *</label>
+                    <select id="plant" class="form-control" required>
+                        <option value="">Select Plant</option>
+                        <option value="Hyderabad Plant">Hyderabad Plant</option>
+                        <option value="Pune Plant">Pune Plant</option>
+                        <option value="Bangalore Plant">Bangalore Plant</option>
+                        <option value="Chennai Plant">Chennai Plant</option>
+                        <option value="Delhi Plant">Delhi Plant</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Item/Work Description *</label>
+                    <textarea id="itemDescription" class="form-control" rows="3" placeholder="Enter item or work description..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Payment Type *</label>
+                    <select id="paymentType" class="form-control" required>
+                        <option value="">Select Payment Type</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Letter of Credit">Letter of Credit</option>
+                        <option value="Credit Terms">Credit Terms</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Requested By *</label>
+                    <input type="text" id="requestedBy" class="form-control" placeholder="Enter requester name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Remarks</label>
+                    <textarea id="remarks" class="form-control" rows="2" placeholder="Any additional remarks..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button onclick="createPR()" class="btn btn-success">
+                        <i class="fas fa-save"></i> Create
+                    </button>
+                    <button onclick="hideCreateForm()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Modal -->
+        <div id="fileUploadModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3><i class="fas fa-upload"></i> Upload Files</h3>
+                <div class="form-group">
+                    <label>Select Files (PDF, DOC, Excel, Images - Max 10MB each)</label>
+                    <input type="file" id="fileInput" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                </div>
+                <div id="fileList" class="file-list"></div>
+                <div class="form-actions">
+                    <button onclick="uploadFiles()" class="btn btn-success">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload
+                    </button>
+                    <button onclick="hideFileUpload()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files View Modal -->
+        <div id="filesViewModal" class="modal" style="display: none;">
+            <div class="modal-content modal-lg">
+                <h3><i class="fas fa-folder-open"></i> Uploaded Files</h3>
+                <div id="filesContainer" class="files-grid"></div>
+                <div class="form-actions">
+                    <button onclick="hideFilesView()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supplier Name Modal -->
+        <div id="supplierModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3><i class="fas fa-building"></i> Enter Supplier Details</h3>
+                <p>Supplier name is required at the Approval stage.</p>
+                
+                <div class="form-group">
+                    <label>Supplier Name *</label>
+                    <input type="text" id="supplierName" class="form-control" placeholder="Enter supplier name" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button onclick="confirmSupplier()" class="btn btn-success">
+                        <i class="fas fa-check"></i> Confirm & Complete Approval
+                    </button>
+                    <button onclick="hideSupplierModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PO Number Modal -->
+        <div id="poNumberModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3><i class="fas fa-file-invoice"></i> Enter PO Number</h3>
+                <p>PO Number is required at the PO Creation stage.</p>
+                
+                <div class="form-group">
+                    <label>PO Number *</label>
+                    <input type="text" id="poNumber" class="form-control" placeholder="e.g., PO-2024-001" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button onclick="confirmPONumber()" class="btn btn-success">
+                        <i class="fas fa-check"></i> Confirm & Create PO
+                    </button>
+                    <button onclick="hidePONumberModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PO Advance Modal -->
+        <div id="poAdvanceModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3><i class="fas fa-money-bill-wave"></i> PO Advance Required?</h3>
+                <p>Please specify if this Purchase Order requires advance payment.</p>
+        
+                <div class="form-group">
+                    <label>PO Advance *</label>
+                    <select id="poAdvance" class="form-control" required>
+                        <option value="">Select Option</option>
+                        <option value="No">No - Regular Payment</option>
+                        <option value="Yes">Yes - Advance Payment Required</option>
+                    </select>
+                </div>
+        
+                <div class="form-actions">
+                    <button onclick="confirmPOAdvance()" class="btn btn-success">
+                        <i class="fas fa-check"></i> Confirm & Continue
+                    </button>
+                    <button onclick="hidePOAdvanceModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY MODAL -->
+        <div id="historyModal" class="modal" style="display: none;">
+            <div class="modal-content modal-lg">
+                <h3><i class="fas fa-history"></i> Stage History</h3>
+                <div id="historyContent">
+                    <div class="text-center">Loading history...</div>
+                </div>
+                <div class="form-actions">
+                    <button onclick="hideHistoryModal()" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast" class="toast"></div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="script.js"></script>
+    
+    <script>
+        // Additional safety check - if body is still hidden 1 second after load, force show it
+        setTimeout(function() {
+            if (document.body && document.body.style.display === 'none') {
+                console.warn('⚠️ Body still hidden after 1s, forcing display');
+                document.body.style.display = 'block';
+                document.body.style.visibility = 'visible';
+                document.body.style.opacity = '1';
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

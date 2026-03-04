@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Login - ProcureTrack</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Login page specific styles */
+        body {
+            display: flex !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: linear-gradient(135deg, #3498db, #2ecc71) !important;
+            min-height: 100vh !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .login-box {
+            background: white;
+            padding: clamp(30px, 5vw, 40px);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.5s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header i {
+            font-size: clamp(2.5rem, 8vw, 3rem);
+            color: #2ecc71;
+            margin-bottom: 15px;
+        }
+        
+        .login-header h2 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: clamp(1.5rem, 5vw, 1.8rem);
+        }
+        
+        .login-header p {
+            color: #6c757d;
+            font-size: clamp(0.85rem, 3vw, 0.95rem);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: clamp(0.85rem, 3vw, 0.95rem);
+        }
+        
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 12px;
+            color: #6c757d;
+            font-size: 1rem;
+            z-index: 1;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: clamp(10px, 3vw, 12px) clamp(10px, 3vw, 12px) clamp(10px, 3vw, 12px) 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: clamp(0.9rem, 4vw, 1rem);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            min-height: 44px; /* Touch target */
+        }
+        
+        .input-group input:focus {
+            border-color: #2ecc71;
+            outline: none;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: clamp(12px, 4vw, 14px);
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: clamp(0.95rem, 4vw, 1rem);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            min-height: 48px; /* Touch target */
+        }
+        
+        .btn-login:hover:not(:disabled) {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.95rem;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        /* Touch device optimizations */
+        @media (hover: none) and (pointer: coarse) {
+            .btn-login:hover {
+                transform: none;
+            }
+            
+            .input-group input {
+                font-size: 16px; /* Prevent zoom on iOS */
+            }
+        }
+        
+        /* Small screens */
+        @media (max-width: 480px) {
+            .login-box {
+                padding: 25px 20px;
+            }
+            
+            .btn-login {
+                min-height: 50px;
+            }
+            
+            .input-group input {
+                min-height: 48px;
+            }
+        }
+        
+        /* Landscape orientation */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .login-container {
+                min-height: auto;
+                padding: 10px;
+            }
+            
+            .login-box {
+                padding: 20px;
+            }
+            
+            .login-header {
+                margin-bottom: 15px;
+            }
+            
+            .login-header i {
+                font-size: 2rem;
+                margin-bottom: 5px;
+            }
+            
+            .form-group {
+                margin-bottom: 10px;
+            }
+        }
+        
+        /* TV screens */
+        @media (min-width: 1920px) {
+            .login-box {
+                max-width: 500px;
+            }
+            
+            .input-group input {
+                min-height: 56px;
+                font-size: 1.2rem;
+            }
+            
+            .btn-login {
+                min-height: 60px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <i class="fas fa-truck"></i>
+                <h2>ProcureTrack</h2>
+                <p>Sign in to your account</p>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+            
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" required autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="off">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-login" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </form>
+            
+            <!-- Optional: Add a forgot password or help link -->
+            <div style="text-align: center; margin-top: 20px; font-size: 0.85rem; color: #6c757d;">
+                <p>Contact administrator for access</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+            
+            console.log('🔵 Login page loaded');
+            
+            // Clear any existing session data when login page loads
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('sessionId');
+            
+            // Get DOM elements
+            const loginForm = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const errorDiv = document.getElementById('errorMessage');
+            const loginButton = document.getElementById('loginButton');
+            
+            if (!loginForm || !usernameInput || !passwordInput || !errorDiv) {
+                console.error('Required DOM elements not found');
+                return;
+            }
+            
+            // Ensure inputs are empty on page load
+            usernameInput.value = '';
+            passwordInput.value = '';
+            
+            // Login form submit handler
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                console.log('Login attempt for:', username);
+                
+                // Validate inputs
+                if (!username || !password) {
+                    errorDiv.textContent = 'Please enter both username and password';
+                    errorDiv.classList.add('show');
+                    
+                    // Shake animation for error
+                    loginForm.style.animation = 'shake 0.3s ease';
+                    setTimeout(() => {
+                        loginForm.style.animation = '';
+                    }, 300);
+                    
+                    return;
+                }
+                
+                // Disable button while processing
+                const originalText = loginButton.innerHTML;
+                loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+                loginButton.disabled = true;
+                
+                // Hide previous error
+                errorDiv.classList.remove('show');
+                
+                try {
+                    const response = await fetch('http://localhost:3000/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password }),
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    console.log('Login response:', data);
+                    
+                    if (data.success) {
+                        // Store user data in sessionStorage
+                        sessionStorage.setItem('user', JSON.stringify(data.user));
+                        sessionStorage.setItem('sessionId', 'session_' + Date.now());
+                        
+                        console.log('✅ Login successful, user stored:', data.user);
+                        console.log('Redirecting to index.html');
+                        
+                        // Success animation
+                        loginButton.style.background = '#27ae60';
+                        loginButton.innerHTML = '<i class="fas fa-check"></i> Success!';
+                        
+                        // Redirect after short delay
+                        setTimeout(() => {
+                            window.location.href = '/index.html';
+                        }, 500);
+                    } else {
+                        errorDiv.textContent = data.message || 'Invalid username or password';
+                        errorDiv.classList.add('show');
+                        
+                        // Shake animation for error
+                        loginForm.style.animation = 'shake 0.3s ease';
+                        setTimeout(() => {
+                            loginForm.style.animation = '';
+                        }, 300);
+                        
+                        // Re-enable button
+                        loginButton.innerHTML = originalText;
+                        loginButton.disabled = false;
+                        
+                        // Clear password field for security
+                        passwordInput.value = '';
+                        passwordInput.focus();
+                    }
+                } catch (error) {
+                    console.error('❌ Login error:', error);
+                    
+                    let errorMessage = 'Failed to connect to server';
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Cannot connect to server. Please check if server is running on port 3000.';
+                    } else if (error.message.includes('NetworkError')) {
+                        errorMessage = 'Network error. Please check your connection.';
+                    }
+                    
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.classList.add('show');
+                    
+                    // Re-enable button
+                    loginButton.innerHTML = originalText;
+                    loginButton.disabled = false;
+                }
+            });
+            
+            // Add shake animation keyframes
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Auto-focus username input
+            usernameInput.focus();
+            
+            // Clear any browser autofill that might have populated
+            setTimeout(() => {
+                usernameInput.value = '';
+                passwordInput.value = '';
+            }, 100);
+            
+            // Handle enter key for better mobile experience
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            usernameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    passwordInput.focus();
+                }
+            });
+            
+            // Prevent copy-paste of password for security (optional)
+            // passwordInput.addEventListener('paste', (e) => e.preventDefault());
+            
+        })();
+    </script>
+</body>
+</html>
